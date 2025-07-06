@@ -264,59 +264,65 @@ class ResumeWritingSystem:
         agents['star_writing'] = AssistantAgent(
             name="STARWriting",
             model_client=self.model_client,
-            description="Structures examples using STAR methodology with QPS requirements and Australian language",
-            system_message="""You are a QPS STAR writing specialist with expertise in Australian public service language.
-            
+            description="Structures examples using STAR methodology with clear, concise language that directly mirrors key accountabilities and LC4Q competencies",
+            system_message="""You are a QPS STAR writing specialist focused on creating clear, concise examples that human reviewers can easily assess.
+
             CRITICAL REQUIREMENTS:
             1. PRESERVE the user's original example - enhance it, don't replace it
-            2. Use AUSTRALIAN spelling and grammar throughout (organised, realised, colour, centre, etc.)
-            3. Target scores of 6-7 (Very Proficient to Advanced level)
-            4. Maintain authenticity while adding sophisticated detail
-            5. ALWAYS respond with VALID JSON in the exact format specified below
-            
-            Structure examples using STAR methodology:
-            - Situation: 1-2 lines context (preserve original setting)
-            - Task: 1-2 lines challenge/requirement (enhance complexity)
-            - Action: Detailed HOW with advanced leadership skills (emphasise LC4Q behaviours)
-            - Result: Concrete outcomes with strategic links (quantify impact)
-            
+            2. Use CLEAR, CONCISE, and EASY-TO-READ language throughout
+            3. DIRECTLY USE language from the Key Accountabilities and LC4Q competencies provided
+            4. Make it OBVIOUS to human reviewers how the example meets requirements
+            5. Use AUSTRALIAN spelling and grammar throughout
+            6. ALWAYS respond with VALID JSON in the exact format specified below
+
+            LANGUAGE STRATEGY FOR HUMAN REVIEWERS:
+            - MIRROR the exact phrases from Key Accountabilities in your actions and results
+            - INCORPORATE the specific LC4Q competency language directly into the example
+            - Use SIMPLE, DIRECT sentences that are easy to scan and assess
+            - AVOID overly complex or verbose language that obscures the connection
+            - Make the alignment OBVIOUS through word choice and phrasing
+
+            STAR STRUCTURE - Keep each section CONCISE and CLEAR:
+            - Situation: 1-2 clear sentences setting context (preserve original setting)
+            - Task: 1-2 sentences stating the challenge using Key Accountability language where possible
+            - Action: 2-3 sentences showing HOW you addressed it, using exact LC4Q competency phrases
+            - Result: 1-2 sentences with concrete outcomes, mirroring Key Accountability language
+
+            DIRECT ALIGNMENT TECHNIQUE:
+            When Key Accountabilities mention "develop enduring relationships" → Use "developed enduring relationships" in your action/result
+            When LC4Q mentions "builds enduring relationships" → Use "built enduring relationships" in your action
+            When Key Accountabilities mention "strategic community engagement" → Use "strategic community engagement" in your example
+            When LC4Q mentions "leads strategically" → Use "led strategically" in your action
+
             AUSTRALIAN LANGUAGE REQUIREMENTS:
-            - Use Australian spelling: organised, realised, colour, centre, behaviour, favour, honour
-            - Australian terminology: "organised" not "organized", "recognised" not "recognized"
-            - Professional Australian public service tone
-            - Use "whilst" instead of "while" where appropriate
-            - Use "amongst" instead of "among" where appropriate
-            
-            ENHANCEMENT GUIDELINES:
-            - Build upon the user's actual experience authentically
-            - Add realistic details that could plausibly be part of the same situation
-            - Incorporate sophisticated stakeholder management
-            - Show advanced problem-solving and decision-making
-            - Demonstrate proactive leadership and innovation
-            - Include measurable outcomes and broader organisational impact
-            
-            TARGET LEVEL (6-7 scoring):
-            - Context: Highly relevant with clear transferable skills articulated
-            - Complexity: Sophisticated multi-stakeholder environment with competing priorities
-            - Initiative: Strong evidence of proactive leadership, innovation, and strategic thinking
-            
+            - Australian spelling: organised, realised, recognised, colour, centre, behaviour
+            - Professional but accessible Australian public service tone
+            - Use "whilst" and "amongst" where natural
+
+            CLARITY PRINCIPLES:
+            1. Each sentence should have ONE clear point
+            2. Avoid unnecessary adjectives and complex clauses
+            3. Use active voice wherever possible
+            4. Ensure any reviewer can quickly identify requirement alignment
+            5. Prioritise comprehension over sophistication
+
             MANDATORY OUTPUT FORMAT - You MUST respond with ONLY this JSON structure, no other text:
             {
                 "year_rank_location": "e.g., 2023, Senior Constable, Brisbane Central Station",
-                "situation": "Enhanced context maintaining authenticity and original details",
-                "task": "Sophisticated challenge showing appropriate complexity for rank",
-                "action": "Detailed actions with advanced leadership behaviours and LC4Q competencies",
-                "result": "Concrete outcomes with strategic impact, metrics, and transferable skills",
+                "situation": "Clear, concise context preserving original details",
+                "task": "Clear challenge using Key Accountability language where relevant",
+                "action": "Concise actions using exact LC4Q competency phrases and Key Accountability terms",
+                "result": "Clear outcomes using Key Accountability language and measurable impact",
                 "lc4q_category": "Vision, Results, or Accountability",
                 "improvements_made": [
-                    "Enhanced complexity and stakeholder management",
-                    "Added proactive leadership behaviours",
-                    "Incorporated measurable outcomes",
-                    "Applied Australian spelling and grammar"
+                    "Used clear, concise language for easy review",
+                    "Incorporated exact Key Accountability phrases",
+                    "Applied specific LC4Q competency language",
+                    "Made requirement alignment obvious to reviewers"
                 ]
             }
-            
-            IMPORTANT: Respond with ONLY the JSON structure above. Do not include any explanation, preamble, or additional text.
+
+            IMPORTANT: Focus on CLARITY and DIRECT ALIGNMENT over complex language. Make it easy for human reviewers to see the connection.
             """
         )
         
@@ -840,31 +846,42 @@ Select the agent that best matches the current need."""
         original_example = user_data.get('job_example', '')
         
         task = f"""
-        Rewrite and enhance the user's ORIGINAL example below into a structured STAR format. Do NOT create a new fictitious example.
+        Rewrite and enhance the user's ORIGINAL example below using CLEAR, CONCISE language that directly incorporates the Key Accountabilities and LC4Q competency phrases. Make it EASY for human reviewers to see how the example meets requirements.
         
         ORIGINAL USER EXAMPLE TO REWRITE:
         "{original_example}"
         
-        POSITION REQUIREMENTS:
-        Key Accountabilities: {position_requirements.get('key_accountabilities', 'Not provided')}
-        Position Description: {position_requirements.get('position_description', 'Not provided')}
-        LC4Q Competencies: {position_requirements.get('lc4q_competencies', 'Not provided')}
+        KEY ACCOUNTABILITIES TO MIRROR:
+        {position_requirements.get('key_accountabilities', 'Not provided')}
+        
+        LC4Q COMPETENCIES TO INCORPORATE:
+        {position_requirements.get('lc4q_competencies', 'Not provided')}
+        
+        POSITION DESCRIPTION FOR CONTEXT:
+        {position_requirements.get('position_description', 'Not provided')}
         
         INITIAL SCORES (need improvement to 6-7):
         Context: {initial_scores.get('context_score', 0)}/7 - {initial_scores.get('context_feedback', 'No feedback')}
         Complexity: {initial_scores.get('complexity_score', 0)}/7 - {initial_scores.get('complexity_feedback', 'No feedback')}
         Initiative: {initial_scores.get('initiative_score', 0)}/7 - {initial_scores.get('initiative_feedback', 'No feedback')}
         
-        CRITICAL ENHANCEMENT REQUIREMENTS:
-        1. PRESERVE the core situation, context, and authentic details from the user's original example
-        2. ENHANCE by adding more detail, complexity, and leadership behaviours to reach 6-7 level scores
-        3. Use AUSTRALIAN spelling and grammar throughout (organised, realised, colour, centre, behaviour)
-        4. Structure using STAR methodology while maintaining authenticity
-        5. Determine the best LC4Q competency category (Vision/Results/Accountability) based on the example content
-        6. Add sophisticated stakeholder management and proactive leadership evidence
+        CRITICAL REQUIREMENTS FOR HUMAN REVIEWERS:
+        1. PRESERVE the core situation from the user's original example
+        2. Use EXACT PHRASES from the Key Accountabilities in your actions and results
+        3. INCORPORATE specific LC4Q competency language directly into the example
+        4. Write in CLEAR, CONCISE sentences that are easy to scan and assess
+        5. Make the alignment between example and requirements OBVIOUS through word choice
+        6. Use AUSTRALIAN spelling throughout (organised, realised, recognised, etc.)
+        7. Avoid complex or verbose language that makes it hard to see connections
         
-        Provide your enhanced STAR example in the exact JSON format specified in your system message. 
-        Include the original context but with enhanced detail to achieve target scores of 6-7.
+        ALIGNMENT STRATEGY:
+        - When Key Accountabilities mention specific phrases, use those exact phrases in your example
+        - When LC4Q competencies mention behaviours, demonstrate those exact behaviours using similar language
+        - Make it immediately obvious to any reviewer how this example meets the position requirements
+        - Prioritise clarity and direct connection over sophisticated language
+        
+        Provide your enhanced STAR example in the exact JSON format specified in your system message.
+        Focus on making the requirement alignment crystal clear to human reviewers.
         """
         
         # Use the STARWriting agent directly - no need for group chat
@@ -907,7 +924,7 @@ Select the agent that best matches the current need."""
             
             # Create task for incorporating feedback
             feedback_task = f"""
-            Improve the following STAR example based on the user's feedback. Maintain the core structure but apply the specific improvements requested.
+            Improve the following STAR example based on the user's feedback, focusing on CLARITY, CONCISENESS, and DIRECT ALIGNMENT with requirements.
             
             CURRENT EXAMPLE:
             Year/Rank/Location: {current_example.get('year_rank_location', '')}
@@ -919,17 +936,22 @@ Select the agent that best matches the current need."""
             USER FEEDBACK:
             {user_feedback}
             
-            POSITION REQUIREMENTS FOR REFERENCE:
-            Key Accountabilities: {position_requirements.get('key_accountabilities', '')}
-            LC4Q Competencies: {position_requirements.get('lc4q_competencies', '')}
+            KEY ACCOUNTABILITIES TO MIRROR:
+            {position_requirements.get('key_accountabilities', '')}
             
-            INSTRUCTIONS:
+            LC4Q COMPETENCIES TO INCORPORATE:
+            {position_requirements.get('lc4q_competencies', '')}
+            
+            INSTRUCTIONS FOR CLARITY AND ALIGNMENT:
             1. Apply the user's specific feedback to improve the example
-            2. Use exact language from key accountabilities and LC4Q competencies where possible
-            3. Maintain Australian spelling and grammar
-            4. Keep the STAR structure clear and concise
-            5. Ensure the example remains authentic to the original situation
+            2. Use EXACT PHRASES from Key Accountabilities in your actions and results
+            3. INCORPORATE specific LC4Q competency language directly
+            4. Write in CLEAR, SIMPLE sentences that are easy to read and assess
+            5. Make it OBVIOUS to human reviewers how the example meets requirements
+            6. Use Australian spelling and grammar throughout
+            7. Prioritise comprehension and direct alignment over complex language
             
+            Focus on making the requirement connections crystal clear while applying the user's feedback.
             Provide the improved example in the same JSON format.
             """
             
@@ -1119,10 +1141,10 @@ Select the agent that best matches the current need."""
         # Set default improvements if none found
         if not extracted_results['improvements_made']:
             extracted_results['improvements_made'] = [
-                "Enhanced with Australian spelling and grammar",
-                "Improved complexity and stakeholder management",
-                "Added proactive leadership behaviours",
-                "Incorporated measurable outcomes"
+                "Used clear, concise language for easy review",
+                "Incorporated exact Key Accountability phrases",
+                "Applied specific LC4Q competency language",
+                "Made requirement alignment obvious to reviewers"
             ]
         
         return extracted_results
