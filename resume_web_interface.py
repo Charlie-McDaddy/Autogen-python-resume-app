@@ -848,28 +848,72 @@ def display_results(result):
     # Download option
     st.markdown('<h3 class="section-header">💾 Download Your Resume</h3>', unsafe_allow_html=True)
     
+    def make_json_serializable(obj):
+        """Recursively convert objects to JSON serializable format"""
+        if hasattr(obj, '__dict__'):
+            # Convert objects with attributes to dictionaries
+            return {key: make_json_serializable(value) for key, value in obj.__dict__.items()}
+        elif hasattr(obj, 'content') and hasattr(obj, 'source'):
+            # Handle message objects specifically
+            return {
+                "content": str(getattr(obj, 'content', '')),
+                "source": str(getattr(obj, 'source', 'Unknown')),
+                "object_type": str(type(obj).__name__)
+            }
+        elif isinstance(obj, dict):
+            return {key: make_json_serializable(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [make_json_serializable(item) for item in obj]
+        elif isinstance(obj, (str, int, float, bool, type(None))):
+            return obj
+        else:
+            # Convert any other object to string
+            return str(obj)
+    
     # Prepare comprehensive download data
-    download_data = {
+    raw_download_data = {
         "timestamp": datetime.now().isoformat(),
         "user_data": st.session_state.get('user_data', {}),
         "position_requirements": st.session_state.get('position_requirements', {}),
         "initial_scoring": st.session_state.get('initial_scoring', {}),
         "rewritten_example": st.session_state.get('rewritten_example', {}),
         "user_feedback": st.session_state.get('user_feedback', ''),
-        "final_result": {
-            "success": result.get('success', False),
-            "total_turns": result.get('total_turns', 0),
-            "stop_reason": result.get('stop_reason', 'Unknown'),
-            "messages": [str(msg) for msg in result.get('messages', [])]
-        }
+        "final_result": result
     }
     
-    st.download_button(
-        label="📥 Download Complete Resume Package (JSON)",
-        data=json.dumps(download_data, indent=2),
-        file_name=f"qps_resume_complete_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-        mime="application/json"
-    )
+    # Make everything JSON serializable
+    try:
+        download_data = make_json_serializable(raw_download_data)
+        json_data = json.dumps(download_data, indent=2)
+        
+        st.download_button(
+            label="📥 Download Complete Resume Package (JSON)",
+            data=json_data,
+            file_name=f"qps_resume_complete_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json"
+        )
+    except Exception as e:
+        st.error(f"❌ Error preparing download: {str(e)}")
+        st.info("💡 The resume data contains objects that cannot be serialized. Please try again or contact support.")
+        
+        # Provide a simplified download as fallback
+        try:
+            simplified_data = {
+                "timestamp": datetime.now().isoformat(),
+                "final_example": result.get('final_example', {}),
+                "user_feedback": st.session_state.get('user_feedback', ''),
+                "note": "Simplified download due to serialization issues"
+            }
+            simplified_json = json.dumps(simplified_data, indent=2)
+            
+            st.download_button(
+                label="📥 Download Simplified Resume Data (JSON)",
+                data=simplified_json,
+                file_name=f"qps_resume_simple_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json"
+            )
+        except Exception as fallback_error:
+            st.error(f"❌ Fallback download also failed: {str(fallback_error)}")
 
 def display_sidebar():
     """Display sidebar with system information"""
