@@ -45,13 +45,6 @@ class ResumeSystemTester:
         scenarios = {
             "senior_constable_to_sergeant": {
                 "user_data": {
-                    "name": "Sarah Johnson",
-                    "current_rank": "Senior Constable",
-                    "current_position": "Community Liaison Officer",
-                    "location": "Brisbane",
-                    "years_experience": 7,
-                    "target_position": "Sergeant - Community Engagement",
-                    "target_location": "Gold Coast",
                     "job_example": """In 2023, as a Senior Constable at Brisbane Station, I was assigned to address rising community tensions in the multicultural Sunnybank area following several incidents between different ethnic groups. The situation required immediate intervention to prevent escalation while building long-term relationships. I coordinated with community leaders from Vietnamese, Chinese, and Pacific Islander communities to establish a regular dialogue forum, developed culturally appropriate engagement strategies, and trained 6 junior officers in cross-cultural communication techniques, resulting in a 40% reduction in reported community tensions over 6 months."""
                 },
                 "position_requirements": {
@@ -101,13 +94,6 @@ Accountability:
             
             "constable_to_senior_constable": {
                 "user_data": {
-                    "name": "Michael Chen",
-                    "current_rank": "Constable",
-                    "current_position": "General Duties Officer",
-                    "location": "Ipswich",
-                    "years_experience": 4,
-                    "target_position": "Senior Constable - Traffic Enforcement",
-                    "target_location": "Brisbane",
                     "job_example": """In 2023, as a Constable at Ipswich Station, I was assigned to address increasing traffic incidents on the Warrego Highway corridor during peak hours. The situation involved multiple serious accidents causing significant delays and public safety concerns. I developed and implemented a proactive traffic enforcement strategy, coordinating with Transport and Main Roads Queensland to identify high-risk areas, established mobile enforcement points during peak periods, and delivered road safety education programs to three local schools. This resulted in a 25% reduction in serious traffic incidents and earned recognition from the District Traffic Coordinator for innovative problem-solving."""
                 },
                 "position_requirements": {
@@ -163,11 +149,7 @@ Accountability:
             user_data = scenario_data["user_data"]
             position_requirements = scenario_data["position_requirements"]
             
-            print(f"👤 User: {user_data['name']}")
-            print(f"📊 Current: {user_data['current_rank']} - {user_data['current_position']}")
-            print(f"🎯 Target: {user_data['target_position']}")
-            print(f"📍 Location: {user_data['location']} → {user_data['target_location']}")
-            print(f"⏰ Experience: {user_data['years_experience']} years")
+            print(f"💼 Job Example: {user_data['job_example'][:100]}...")
             
             print(f"\n🚀 Starting resume creation process...")
             print(f"{'─'*60}")
@@ -188,9 +170,6 @@ Accountability:
         
         # Use a simplified scenario
         user_data = {
-            "name": "Test Officer",
-            "current_rank": "Constable",
-            "target_position": "Senior Constable",
             "job_example": "Led a community engagement initiative that improved police-public relations"
         }
         

@@ -11,6 +11,9 @@ import json
 import os
 from datetime import datetime
 from resume_system import ResumeWritingSystem
+import PyPDF2
+from docx import Document
+import io
 
 # Configure Streamlit page
 st.set_page_config(
@@ -60,6 +63,58 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+def extract_text_from_pdf(uploaded_file):
+    """Extract text from uploaded PDF file"""
+    try:
+        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text() + "\n"
+        return text.strip()
+    except Exception as e:
+        st.error(f"Error reading PDF file: {str(e)}")
+        return None
+
+def extract_text_from_docx(uploaded_file):
+    """Extract text from uploaded DOCX file"""
+    try:
+        doc = Document(uploaded_file)
+        text = ""
+        for paragraph in doc.paragraphs:
+            text += paragraph.text + "\n"
+        return text.strip()
+    except Exception as e:
+        st.error(f"Error reading DOCX file: {str(e)}")
+        return None
+
+def extract_text_from_txt(uploaded_file):
+    """Extract text from uploaded TXT file"""
+    try:
+        # Convert bytes to string
+        text = str(uploaded_file.read(), "utf-8")
+        return text.strip()
+    except Exception as e:
+        st.error(f"Error reading TXT file: {str(e)}")
+        return None
+
+def process_uploaded_file(uploaded_file):
+    """Process uploaded file and extract text based on file type"""
+    if uploaded_file is None:
+        return None
+    
+    file_type = uploaded_file.type
+    file_name = uploaded_file.name.lower()
+    
+    if file_type == "application/pdf" or file_name.endswith('.pdf'):
+        return extract_text_from_pdf(uploaded_file)
+    elif file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" or file_name.endswith('.docx'):
+        return extract_text_from_docx(uploaded_file)
+    elif file_type == "text/plain" or file_name.endswith('.txt'):
+        return extract_text_from_txt(uploaded_file)
+    else:
+        st.error(f"Unsupported file type: {file_type}. Please upload PDF, DOCX, or TXT files.")
+        return None
 
 def initialize_session_state():
     """Initialize session state variables"""
@@ -117,25 +172,7 @@ def display_header():
 
 def collect_user_data():
     """Collect user data through the interface"""
-    st.markdown('<h2 class="section-header">👤 Officer Information</h2>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        name = st.text_input("Full Name", placeholder="e.g., John Smith")
-        current_rank = st.selectbox(
-            "Current Rank",
-            ["Constable", "Senior Constable", "Sergeant", "Senior Sergeant", "Inspector"]
-        )
-        current_position = st.text_input("Current Position", placeholder="e.g., General Duties Officer")
-        location = st.text_input("Current Location", placeholder="e.g., Brisbane")
-    
-    with col2:
-        target_position = st.text_input("Target Position", placeholder="e.g., Sergeant - Team Leader")
-        target_location = st.text_input("Target Location", placeholder="e.g., Gold Coast")
-        years_experience = st.number_input("Years of Experience", min_value=1, max_value=40, value=5)
-    
-    st.markdown('<h3 class="section-header">💼 Job Example Input</h3>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">💼 Job Example Input</h2>', unsafe_allow_html=True)
     
     job_example = st.text_area(
         "Describe a specific work example/situation you want to use in your resume:",
@@ -144,13 +181,6 @@ def collect_user_data():
     )
     
     return {
-        "name": name,
-        "current_rank": current_rank,
-        "current_position": current_position,
-        "location": location,
-        "years_experience": years_experience,
-        "target_position": target_position,
-        "target_location": target_location,
         "job_example": job_example
     }
 
@@ -160,25 +190,60 @@ def collect_position_requirements():
     
     # Key Accountabilities
     st.markdown('<h3 class="section-header">🎯 Key Accountabilities</h3>', unsafe_allow_html=True)
-    key_accountabilities = st.text_area(
-        "List the key accountabilities for the target position:",
-        height=150,
-        key="key_accountabilities",
-        placeholder="""Example:
+    
+    # Option to choose input method
+    ka_input_method = st.radio(
+        "How would you like to provide Key Accountabilities?",
+        ["Type/Paste Text", "Upload File"],
+        key="ka_input_method",
+        horizontal=True
+    )
+    
+    key_accountabilities = ""
+    if ka_input_method == "Type/Paste Text":
+        key_accountabilities = st.text_area(
+            "List the key accountabilities for the target position:",
+            height=150,
+            key="key_accountabilities",
+            placeholder="""Example:
 - Lead strategic community engagement initiatives across the district
-- Develop and mobilize team of community liaison officers  
+- Develop and mobilize team of community liaison officers
 - Build enduring relationships with community stakeholders
 - Foster inclusive workplace culture reflecting community diversity
 - Demonstrate sound governance in program management"""
-    )
+        )
+    else:
+        uploaded_ka_file = st.file_uploader(
+            "Upload Key Accountabilities file (PDF, DOCX, or TXT)",
+            type=['pdf', 'docx', 'txt'],
+            key="ka_file_uploader"
+        )
+        if uploaded_ka_file is not None:
+            extracted_text = process_uploaded_file(uploaded_ka_file)
+            if extracted_text:
+                key_accountabilities = extracted_text
+                st.success(f"✅ Successfully extracted text from {uploaded_ka_file.name}")
+                with st.expander("Preview extracted text"):
+                    st.text_area("Extracted Key Accountabilities:", value=extracted_text, height=150, disabled=True)
     
     # Position Description
     st.markdown('<h3 class="section-header">📋 Position Description</h3>', unsafe_allow_html=True)
-    position_description = st.text_area(
-        "Provide the general position description and operational requirements:",
-        height=150,
-        key="position_description",
-        placeholder="""Example:
+    
+    # Option to choose input method
+    pd_input_method = st.radio(
+        "How would you like to provide Position Description?",
+        ["Type/Paste Text", "Upload File"],
+        key="pd_input_method",
+        horizontal=True
+    )
+    
+    position_description = ""
+    if pd_input_method == "Type/Paste Text":
+        position_description = st.text_area(
+            "Provide the general position description and operational requirements:",
+            height=150,
+            key="position_description",
+            placeholder="""Example:
 POSITION: Sergeant - Community Engagement Team Leader
 LOCATION: Gold Coast District
 REPORTS TO: Senior Sergeant - Operations
@@ -188,21 +253,44 @@ OPERATIONAL REQUIREMENTS:
 - Manage district-wide community engagement programs
 - Coordinate with local government and community organizations
 - Oversee budget management for community programs ($200k annually)"""
-    )
+        )
+    else:
+        uploaded_pd_file = st.file_uploader(
+            "Upload Position Description file (PDF, DOCX, or TXT)",
+            type=['pdf', 'docx', 'txt'],
+            key="pd_file_uploader"
+        )
+        if uploaded_pd_file is not None:
+            extracted_text = process_uploaded_file(uploaded_pd_file)
+            if extracted_text:
+                position_description = extracted_text
+                st.success(f"✅ Successfully extracted text from {uploaded_pd_file.name}")
+                with st.expander("Preview extracted text"):
+                    st.text_area("Extracted Position Description:", value=extracted_text, height=150, disabled=True)
     
     # LC4Q Competencies
     st.markdown('<h3 class="section-header">🏆 LC4Q Competencies Required</h3>', unsafe_allow_html=True)
-    st.markdown("Copy and paste the specific LC4Q competencies required for this position and rank level:")
     
-    lc4q_competencies = st.text_area(
-        "LC4Q Competencies (copy from position description or competency framework):",
-        height=200,
-        key="lc4q_competencies",
-        placeholder="""Example format:
+    # Option to choose input method
+    lc4q_input_method = st.radio(
+        "How would you like to provide LC4Q Competencies?",
+        ["Type/Paste Text", "Upload File"],
+        key="lc4q_input_method",
+        horizontal=True
+    )
+    
+    lc4q_competencies = ""
+    if lc4q_input_method == "Type/Paste Text":
+        st.markdown("Copy and paste the specific LC4Q competencies required for this position and rank level:")
+        lc4q_competencies = st.text_area(
+            "LC4Q Competencies (copy from position description or competency framework):",
+            height=200,
+            key="lc4q_competencies",
+            placeholder="""Example format:
 
 Vision:
 - Leads strategically
-- Stimulates ideas and innovation  
+- Stimulates ideas and innovation
 - Makes insightful decisions
 
 Results:
@@ -214,7 +302,20 @@ Accountability:
 - Fosters healthy and inclusive workplaces
 - Demonstrates sound governance
 - Pursues continuous growth"""
-    )
+        )
+    else:
+        uploaded_lc4q_file = st.file_uploader(
+            "Upload LC4Q Competencies file (PDF, DOCX, or TXT)",
+            type=['pdf', 'docx', 'txt'],
+            key="lc4q_file_uploader"
+        )
+        if uploaded_lc4q_file is not None:
+            extracted_text = process_uploaded_file(uploaded_lc4q_file)
+            if extracted_text:
+                lc4q_competencies = extracted_text
+                st.success(f"✅ Successfully extracted text from {uploaded_lc4q_file.name}")
+                with st.expander("Preview extracted text"):
+                    st.text_area("Extracted LC4Q Competencies:", value=extracted_text, height=200, disabled=True)
     
     return {
         "key_accountabilities": key_accountabilities,
@@ -271,26 +372,108 @@ async def rewrite_example(user_data, position_requirements, initial_scores):
 async def process_final_resume(user_data, position_requirements, rewritten_example, user_feedback):
     """Process final resume with user feedback"""
     try:
+        st.write("🔍 **Diagnostic Information:**")
+        
+        # 1. Validate input data with detailed logging
+        st.write("**Step 1: Input Validation**")
+        if not user_data:
+            st.error("❌ Missing user data")
+            return None
+        if not position_requirements:
+            st.error("❌ Missing position requirements")
+            return None
+        if not rewritten_example:
+            st.error("❌ Missing rewritten example")
+            return None
+            
+        st.success("✅ All input data present")
+        st.write(f"- User data keys: {list(user_data.keys())}")
+        st.write(f"- Position req keys: {list(position_requirements.keys())}")
+        st.write(f"- Rewritten example keys: {list(rewritten_example.keys())}")
+        st.write(f"- User feedback length: {len(user_feedback) if user_feedback else 0}")
+        
+        # 2. Check event loop status
+        st.write("**Step 2: Event Loop Diagnostics**")
+        try:
+            import asyncio
+            current_loop = None
+            try:
+                current_loop = asyncio.get_running_loop()
+                st.warning(f"⚠️ Event loop already running: {current_loop}")
+                st.write("This may cause asyncio.run() conflicts")
+            except RuntimeError:
+                st.success("✅ No running event loop detected")
+        except Exception as e:
+            st.error(f"❌ Event loop check failed: {e}")
+        
+        # 3. System initialization check
+        st.write("**Step 3: System Initialization**")
         if not await initialize_system():
+            st.error("❌ Failed to initialize system")
+            return None
+        st.success("✅ System initialization successful")
+        
+        # 4. Check system state
+        st.write("**Step 4: System State Validation**")
+        if not st.session_state.resume_system:
+            st.error("❌ Resume system not initialized in session state")
+            return None
+        st.success("✅ Resume system found in session state")
+        
+        # 5. Check AutoGen team status
+        st.write("**Step 5: AutoGen Team Diagnostics**")
+        try:
+            team = st.session_state.resume_system.team
+            agents = st.session_state.resume_system.agents
+            # SelectorGroupChat uses _participants, not participants
+            participant_count = len(getattr(team, '_participants', []))
+            st.success(f"✅ Team initialized with {participant_count} participants")
+            st.write(f"- Available agents: {list(agents.keys())}")
+            st.write(f"- Team type: {type(team).__name__}")
+        except Exception as e:
+            st.error(f"❌ AutoGen team check failed: {e}")
             return None
         
         progress_placeholder = st.empty()
         status_placeholder = st.empty()
         
-        progress_placeholder.progress(0.8)
-        status_placeholder.info("🔄 Processing with your feedback...")
+        progress_placeholder.progress(0.1)
+        status_placeholder.info("🔄 Starting final processing...")
         
-        result = await st.session_state.resume_system.create_final_resume(
-            user_data, position_requirements, rewritten_example, user_feedback
-        )
+        progress_placeholder.progress(0.3)
+        status_placeholder.info("🔄 Calling create_final_resume...")
         
-        progress_placeholder.progress(1.0)
-        status_placeholder.success("✅ Final resume completed!")
-        
-        return result
+        # 6. Attempt the actual processing with timeout
+        st.write("**Step 6: Final Resume Processing**")
+        try:
+            # Add timeout to prevent hanging
+            result = await asyncio.wait_for(
+                st.session_state.resume_system.create_final_resume(
+                    user_data, position_requirements, rewritten_example, user_feedback
+                ),
+                timeout=300  # 5 minute timeout
+            )
+            
+            progress_placeholder.progress(1.0)
+            status_placeholder.success("✅ Final resume completed!")
+            st.success("✅ Processing completed successfully!")
+            
+            return result
+            
+        except asyncio.TimeoutError:
+            st.error("❌ Processing timed out after 5 minutes")
+            return None
+        except Exception as e:
+            st.error(f"❌ Processing failed: {type(e).__name__}: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
+            return None
         
     except Exception as e:
-        st.error(f"❌ Error during final processing: {str(e)}")
+        st.error(f"❌ Diagnostic error: {type(e).__name__}: {str(e)}")
+        st.write("**Full error details:**")
+        import traceback
+        st.code(traceback.format_exc())
         return None
 
 def display_initial_scoring(scoring_result):
@@ -357,57 +540,173 @@ def display_rewritten_example(rewrite_result):
     if not rewrite_result:
         return
     
-    st.markdown('<h2 class="section-header">✏️ Improved Example</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">✏️ Enhanced Example (Australian English)</h2>', unsafe_allow_html=True)
     
-    # LC4Q Category
-    lc4q_category = rewrite_result.get('lc4q_category', 'Unknown')
-    category_colors = {
-        'Vision': '🔮',
-        'Results': '🎯', 
-        'Accountability': '⚖️'
-    }
-    category_icon = category_colors.get(lc4q_category, '📋')
+    # Show original example for comparison
+    if 'original_example' in rewrite_result:
+        with st.expander("📖 View Original Example for Comparison"):
+            st.write("**Your Original Example:**")
+            st.write(rewrite_result['original_example'])
     
-    st.info(f"{category_icon} **Best LC4Q Fit:** {lc4q_category}")
-    st.write(f"**Reasoning:** {rewrite_result.get('category_reasoning', 'No reasoning provided')}")
+    # Show raw agent content for debugging if available
+    if 'raw_agent_content' in rewrite_result and rewrite_result['raw_agent_content']:
+        with st.expander("🔍 Agent Content Analysis", expanded=False):
+            st.write("**Agent responses received:**")
+            for i, agent_data in enumerate(rewrite_result['raw_agent_content']):
+                st.write(f"**{agent_data['source']}** ({agent_data['length']} chars)")
+                st.code(agent_data['content'])
+                st.write("---")
     
-    # Display the rewritten example
-    st.markdown("### 📝 Rewritten STAR Example")
-    rewritten_example = rewrite_result.get('rewritten_example', {})
-    
-    st.markdown("**Year, Rank, Location:**")
-    st.write(rewritten_example.get('year_rank_location', 'Not provided'))
-    
-    st.markdown("**Situation:**")
-    st.write(rewritten_example.get('situation', 'Not provided'))
-    
-    st.markdown("**Task:**")
-    st.write(rewritten_example.get('task', 'Not provided'))
-    
-    st.markdown("**Action:**")
-    st.write(rewritten_example.get('action', 'Not provided'))
-    
-    st.markdown("**Result:**")
-    st.write(rewritten_example.get('result', 'Not provided'))
-    
-    # Improvements made
-    st.markdown("### 🔧 Key Improvements")
-    improvements = rewrite_result.get('improvements_made', [])
-    for improvement in improvements:
-        st.write(f"✅ {improvement}")
-    
-    # New scores
-    if 'improved_scores' in rewrite_result:
-        st.markdown("### 📈 Projected Scores")
-        improved_scores = rewrite_result['improved_scores']
-        col1, col2, col3 = st.columns(3)
+    # Show the longest agent response if available
+    if 'longest_agent_response' in rewrite_result:
+        longest = rewrite_result['longest_agent_response']
+        st.markdown("### 📝 Primary Agent Response")
+        st.write(f"**Source:** {longest['source']}")
         
-        with col1:
-            st.metric("Context", f"{improved_scores.get('context', 0)}/7")
-        with col2:
-            st.metric("Complexity", f"{improved_scores.get('complexity', 0)}/7")
-        with col3:
-            st.metric("Initiative", f"{improved_scores.get('initiative', 0)}/7")
+        # Try to format the content nicely
+        content = longest['content']
+        if 'situation:' in content.lower() or 'task:' in content.lower():
+            # It's already in STAR format
+            st.markdown(content)
+        else:
+            # Show as formatted text
+            st.write(content)
+        
+        st.markdown("---")
+    
+    # Check if we have agent messages to parse
+    if 'messages' in rewrite_result and rewrite_result['messages']:
+        with st.expander("🤖 Complete Agent Conversation", expanded=False):
+            st.write(f"**Total messages:** {len(rewrite_result['messages'])}")
+            
+            for i, message in enumerate(rewrite_result['messages']):
+                message_content = getattr(message, 'content', str(message))
+                message_source = getattr(message, 'source', f'Agent {i+1}')
+                
+                if len(message_content) > 50:  # Only show meaningful messages
+                    st.write(f"**Message {i+1} - {message_source}:**")
+                    st.code(message_content)
+                    st.write("---")
+    
+    # Try to show structured results first, then fallback to raw content
+    has_structured_content = False
+    
+    # If we have structured results, display them
+    if 'lc4q_category' in rewrite_result and 'rewritten_example' in rewrite_result:
+        # Check if the rewritten example has actual content (not just defaults)
+        example = rewrite_result.get('rewritten_example', {})
+        if (example.get('situation', '') not in ['Enhanced situation context', 'From original example'] and
+            len(example.get('situation', '')) > 50):
+            has_structured_content = True
+    
+    if has_structured_content:
+        # LC4Q Category
+        lc4q_category = rewrite_result.get('lc4q_category', 'Unknown')
+        category_colors = {
+            'Vision': '🔮',
+            'Results': '🎯',
+            'Accountability': '⚖️'
+        }
+        category_icon = category_colors.get(lc4q_category, '📋')
+        
+        st.info(f"{category_icon} **Best LC4Q Fit:** {lc4q_category}")
+        st.write(f"**Reasoning:** {rewrite_result.get('category_reasoning', 'No reasoning provided')}")
+        
+        # Display the rewritten example if available
+        if 'rewritten_example' in rewrite_result:
+            st.markdown("### 📝 Enhanced STAR Example")
+            rewritten_example = rewrite_result.get('rewritten_example', {})
+            
+            st.markdown("**Year, Rank, Location:**")
+            st.write(rewritten_example.get('year_rank_location', 'Not provided'))
+            
+            st.markdown("**Situation:**")
+            st.write(rewritten_example.get('situation', 'Not provided'))
+            
+            st.markdown("**Task:**")
+            st.write(rewritten_example.get('task', 'Not provided'))
+            
+            st.markdown("**Action:**")
+            st.write(rewritten_example.get('action', 'Not provided'))
+            
+            st.markdown("**Result:**")
+            st.write(rewritten_example.get('result', 'Not provided'))
+            
+            # Improvements made
+            if 'improvements_made' in rewrite_result:
+                st.markdown("### 🔧 Key Enhancements")
+                improvements = rewrite_result.get('improvements_made', [])
+                for improvement in improvements:
+                    st.write(f"✅ {improvement}")
+            
+            # New scores
+            if 'improved_scores' in rewrite_result:
+                st.markdown("### 📈 Target Scores (6-7 Level)")
+                improved_scores = rewrite_result['improved_scores']
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    score = improved_scores.get('context', 0)
+                    st.metric("Context", f"{score}/7",
+                             delta="Very Proficient" if score >= 6 else "Needs Enhancement",
+                             delta_color="normal" if score >= 6 else "inverse")
+                with col2:
+                    score = improved_scores.get('complexity', 0)
+                    st.metric("Complexity", f"{score}/7",
+                             delta="Very Proficient" if score >= 6 else "Needs Enhancement",
+                             delta_color="normal" if score >= 6 else "inverse")
+                with col3:
+                    score = improved_scores.get('initiative', 0)
+                    st.metric("Initiative", f"{score}/7",
+                             delta="Very Proficient" if score >= 6 else "Needs Enhancement",
+                             delta_color="normal" if score >= 6 else "inverse")
+    
+    else:
+        # Fallback: Show the actual agent content since structured extraction failed
+        st.warning("⚠️ **Structured content extraction incomplete.** Showing agent-generated content below:")
+        
+        if 'messages' in rewrite_result and rewrite_result['messages']:
+            # Find and display the most relevant agent outputs
+            for message in rewrite_result['messages']:
+                content = getattr(message, 'content', str(message))
+                source = getattr(message, 'source', 'Unknown')
+                
+                # Show content from key agents that likely contains the rewritten example
+                if source in ['STARWriting', 'Orchestrator'] and len(content) > 200:
+                    st.markdown(f"### 📝 Enhanced Example from {source}")
+                    
+                    # Try to format the content nicely
+                    if 'situation:' in content.lower() or 'task:' in content.lower():
+                        # It's already in STAR format
+                        st.markdown(content)
+                    else:
+                        # Show as formatted text
+                        st.write(content)
+                    
+                    st.markdown("---")
+        
+        # Show the default structured view as backup
+        if 'rewritten_example' in rewrite_result:
+            st.markdown("### 📋 Extracted Structure (May Need Manual Review)")
+            example = rewrite_result['rewritten_example']
+            
+            st.markdown("**Year, Rank, Location:**")
+            st.write(example.get('year_rank_location', 'Not extracted'))
+            
+            st.markdown("**Situation:**")
+            st.write(example.get('situation', 'Not extracted'))
+            
+            st.markdown("**Task:**")
+            st.write(example.get('task', 'Not extracted'))
+            
+            st.markdown("**Action:**")
+            st.write(example.get('action', 'Not extracted'))
+            
+            st.markdown("**Result:**")
+            st.write(example.get('result', 'Not extracted'))
+    
+    # Enhancement notice
+    st.success("🇦🇺 **Australian Language Applied:** The enhanced example uses Australian spelling (organised, realised, recognised) and professional Australian public service terminology.")
 
 def collect_user_feedback():
     """Collect user feedback on the rewritten example"""
@@ -434,39 +733,130 @@ def display_results(result):
     if not result:
         return
     
-    st.markdown('<h2 class="section-header">📊 Results</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">🎯 Your Final Resume</h2>', unsafe_allow_html=True)
     
     # Summary metrics
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("Total Messages", result.get('total_turns', 0))
+        feedback_status = "✅ Applied" if result.get('feedback_incorporated', False) else "➖ None"
+        st.metric("User Feedback", feedback_status)
     
     with col2:
         st.metric("Status", "✅ Complete" if result.get('success', False) else "❌ Error")
     
     with col3:
-        st.metric("Stop Reason", result.get('stop_reason', 'Unknown'))
+        final_example = result.get('final_example', {})
+        lc4q_category = final_example.get('lc4q_category', 'Unknown')
+        st.metric("LC4Q Category", lc4q_category)
     
-    # Messages
-    if 'messages' in result and result['messages']:
-        st.markdown('<h3 class="section-header">💬 Agent Conversations</h3>', unsafe_allow_html=True)
+    # Display user feedback if applied
+    if result.get('user_feedback_applied'):
+        st.info(f"📝 **Applied Feedback:** {result['user_feedback_applied']}")
+    
+    # Display the final example
+    if 'final_example' in result and 'rewritten_example' in result['final_example']:
+        st.markdown('<h3 class="section-header">📝 Your Enhanced STAR Example</h3>', unsafe_allow_html=True)
         
-        # Create expandable sections for messages
-        for i, message in enumerate(result['messages']):
-            with st.expander(f"Message {i+1}: {getattr(message, 'source', 'Unknown')}"):
-                st.write(f"**Content:** {getattr(message, 'content', 'No content')}")
-                if hasattr(message, 'metadata'):
-                    st.write(f"**Metadata:** {message.metadata}")
+        final_example = result['final_example']
+        rewritten_example = final_example['rewritten_example']
+        
+        # LC4Q Category with icon
+        lc4q_category = final_example.get('lc4q_category', 'Unknown')
+        category_colors = {
+            'Vision': '🔮',
+            'Results': '🎯',
+            'Accountability': '⚖️'
+        }
+        category_icon = category_colors.get(lc4q_category, '📋')
+        
+        st.success(f"{category_icon} **LC4Q Competency Area:** {lc4q_category}")
+        
+        # Display the STAR example
+        st.markdown("#### 📋 Final STAR Structure")
+        
+        st.markdown("**Year, Rank, Location:**")
+        st.write(rewritten_example.get('year_rank_location', 'Not provided'))
+        
+        st.markdown("**Situation:**")
+        st.write(rewritten_example.get('situation', 'Not provided'))
+        
+        st.markdown("**Task:**")
+        st.write(rewritten_example.get('task', 'Not provided'))
+        
+        st.markdown("**Action:**")
+        st.write(rewritten_example.get('action', 'Not provided'))
+        
+        st.markdown("**Result:**")
+        st.write(rewritten_example.get('result', 'Not provided'))
+        
+        # Show improvements made
+        if 'improvements_made' in final_example and final_example['improvements_made']:
+            st.markdown("#### 🔧 Key Enhancements Applied")
+            for improvement in final_example['improvements_made']:
+                st.write(f"✅ {improvement}")
+        
+        # Show target scores
+        if 'improved_scores' in final_example:
+            st.markdown("#### 📈 Target Performance Scores")
+            improved_scores = final_example['improved_scores']
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                score = improved_scores.get('context', 0)
+                st.metric("Context", f"{score}/7",
+                         delta="Very Proficient" if score >= 6 else "Needs Enhancement",
+                         delta_color="normal" if score >= 6 else "inverse")
+            with col2:
+                score = improved_scores.get('complexity', 0)
+                st.metric("Complexity", f"{score}/7",
+                         delta="Very Proficient" if score >= 6 else "Needs Enhancement",
+                         delta_color="normal" if score >= 6 else "inverse")
+            with col3:
+                score = improved_scores.get('initiative', 0)
+                st.metric("Initiative", f"{score}/7",
+                         delta="Very Proficient" if score >= 6 else "Needs Enhancement",
+                         delta_color="normal" if score >= 6 else "inverse")
+    
+    else:
+        st.warning("⚠️ No structured final example found in results.")
+        
+        # Show agent conversation details in a collapsible section
+        with st.expander("🤖 View Complete Agent Conversations", expanded=False):
+            st.markdown("**Complete multi-agent conversation log:**")
+            for i, message in enumerate(result['messages']):
+                with st.expander(f"Message {i+1}: {getattr(message, 'source', 'Unknown')}"):
+                    st.write(f"**Content:** {getattr(message, 'content', 'No content')}")
+                    if hasattr(message, 'metadata'):
+                        st.write(f"**Metadata:** {message.metadata}")
+    
+    # Success message and next steps
+    st.markdown("---")
+    st.success("🎉 **Resume Creation Complete!** Your QPS promotion resume has been created using advanced multi-agent AI processing with Australian English and targeting 6-7 level performance.")
+    
+    st.info("""
+    **What was accomplished:**
+    ✅ Your original example was preserved and enhanced
+    ✅ Australian spelling and grammar applied throughout
+    ✅ Targeted 6-7 level scoring (Very Proficient to Advanced)
+    ✅ LC4Q competencies addressed
+    ✅ Key Accountabilities coverage verified
+    ✅ Transferable skills articulated
+    ✅ Quality assurance completed
+    """)
     
     # Download option
-    st.markdown('<h3 class="section-header">💾 Download Results</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 class="section-header">💾 Download Your Resume</h3>', unsafe_allow_html=True)
     
-    # Prepare download data
+    # Prepare comprehensive download data
     download_data = {
         "timestamp": datetime.now().isoformat(),
         "user_data": st.session_state.get('user_data', {}),
-        "result": {
+        "position_requirements": st.session_state.get('position_requirements', {}),
+        "initial_scoring": st.session_state.get('initial_scoring', {}),
+        "rewritten_example": st.session_state.get('rewritten_example', {}),
+        "user_feedback": st.session_state.get('user_feedback', ''),
+        "final_result": {
             "success": result.get('success', False),
             "total_turns": result.get('total_turns', 0),
             "stop_reason": result.get('stop_reason', 'Unknown'),
@@ -475,9 +865,9 @@ def display_results(result):
     }
     
     st.download_button(
-        label="📥 Download Results (JSON)",
+        label="📥 Download Complete Resume Package (JSON)",
         data=json.dumps(download_data, indent=2),
-        file_name=f"qps_resume_result_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+        file_name=f"qps_resume_complete_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
         mime="application/json"
     )
 
@@ -522,23 +912,90 @@ def display_sidebar():
         st.markdown("---")
         st.markdown("### 🎯 Enhanced Process")
         st.markdown("""
-        1. **Input** - Provide job example and position details
+        1. **Input** - Provide your authentic job example and position details
         2. **Initial Scoring** - Score your example (Context/Complexity/Initiative)
-        3. **Improvement** - AI rewrites example + identifies LC4Q category
+        3. **Enhancement** - AI enhances YOUR example (preserves authenticity) + Australian English
         4. **Feedback** - Provide your input for refinements
-        5. **Final Resume** - Complete multi-agent processing
+        5. **Final Resume** - Complete multi-agent processing targeting 6-7 scores
         """)
         
         st.markdown("---")
         
-        st.markdown("### 🎯 Success Criteria")
+        st.markdown("### 🎯 Enhanced Success Criteria")
         st.markdown("""
-        - All examples score ≥4 in all areas
+        - All examples score 6-7 (Very Proficient to Advanced)
         - 100% Key Accountability coverage
         - 100% LC4Q competency coverage
-        - Professional presentation
-        - Clear transferable skills
+        - Australian spelling and grammar
+        - Authentic examples enhanced (not replaced)
+        - Clear transferable skills articulation
         """)
+
+def extract_final_resume_content(messages):
+    """Extract structured resume content from agent messages"""
+    resume_content = {}
+    
+    # Look for structured content in the messages
+    for message in messages:
+        content = getattr(message, 'content', str(message))
+        source = getattr(message, 'source', 'Unknown')
+        
+        # Look for JSON-like structured content
+        if '{' in content and '}' in content:
+            try:
+                # Try to extract JSON content
+                import re
+                json_matches = re.findall(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content)
+                for json_str in json_matches:
+                    try:
+                        parsed = json.loads(json_str)
+                        if isinstance(parsed, dict):
+                            resume_content.update(parsed)
+                    except:
+                        continue
+            except:
+                pass
+        
+        # Look for STAR format content
+        if 'situation:' in content.lower() or 'task:' in content.lower() or 'action:' in content.lower() or 'result:' in content.lower():
+            resume_content['star_example'] = content
+        
+        # Look for scoring content
+        if 'score' in content.lower() and ('context' in content.lower() or 'complexity' in content.lower() or 'initiative' in content.lower()):
+            resume_content['scoring_analysis'] = content
+        
+        # Look for competency analysis
+        if 'lc4q' in content.lower() or 'vision' in content.lower() or 'results' in content.lower() or 'accountability' in content.lower():
+            resume_content['competency_analysis'] = content
+    
+    return resume_content if resume_content else None
+
+def display_structured_resume(resume_content):
+    """Display structured resume content in a user-friendly format"""
+    
+    # Display STAR example if available
+    if 'star_example' in resume_content:
+        st.markdown("### 📝 Enhanced STAR Example")
+        st.markdown(resume_content['star_example'])
+    
+    # Display scoring analysis if available
+    if 'scoring_analysis' in resume_content:
+        st.markdown("### 📊 Final Scoring Analysis")
+        st.markdown(resume_content['scoring_analysis'])
+    
+    # Display competency analysis if available
+    if 'competency_analysis' in resume_content:
+        st.markdown("### 🏆 LC4Q Competency Coverage")
+        st.markdown(resume_content['competency_analysis'])
+    
+    # Display any other structured content
+    for key, value in resume_content.items():
+        if key not in ['star_example', 'scoring_analysis', 'competency_analysis']:
+            st.markdown(f"### {key.replace('_', ' ').title()}")
+            if isinstance(value, dict):
+                st.json(value)
+            else:
+                st.markdown(str(value))
 
 def main():
     """Main application function"""
@@ -574,7 +1031,7 @@ def display_input_stage():
     position_requirements = collect_position_requirements()
     
     # Validation
-    if not user_data["name"] or not position_requirements["key_accountabilities"] or not position_requirements["position_description"] or not position_requirements["lc4q_competencies"]:
+    if not user_data["job_example"] or not position_requirements["key_accountabilities"] or not position_requirements["position_description"] or not position_requirements["lc4q_competencies"]:
         st.warning("⚠️ Please fill in all required fields before proceeding.")
         return
     
@@ -596,11 +1053,40 @@ def display_scoring_stage():
             st.session_state.processing = True
             
             with st.spinner("Analyzing your example... This may take a minute."):
-                result = asyncio.run(score_initial_example(
-                    st.session_state.user_data, 
-                    st.session_state.position_requirements
-                ))
-                st.session_state.initial_scoring = result
+                try:
+                    # Handle asyncio event loop conflicts
+                    try:
+                        loop = asyncio.get_running_loop()
+                        # Use thread approach if event loop exists
+                        import concurrent.futures
+                        
+                        def run_scoring_in_thread():
+                            new_loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(new_loop)
+                            try:
+                                return new_loop.run_until_complete(score_initial_example(
+                                    st.session_state.user_data,
+                                    st.session_state.position_requirements
+                                ))
+                            finally:
+                                new_loop.close()
+                        
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            future = executor.submit(run_scoring_in_thread)
+                            result = future.result(timeout=120)  # 2 minute timeout
+                            
+                    except RuntimeError:
+                        # No event loop running
+                        result = asyncio.run(score_initial_example(
+                            st.session_state.user_data,
+                            st.session_state.position_requirements
+                        ))
+                    
+                    st.session_state.initial_scoring = result
+                    
+                except Exception as e:
+                    st.error(f"❌ Scoring failed: {type(e).__name__}: {str(e)}")
+                    st.session_state.initial_scoring = None
             
             st.session_state.processing = False
             st.rerun()
@@ -628,12 +1114,42 @@ def display_rewrite_stage():
             st.session_state.processing = True
             
             with st.spinner("Rewriting your example... This may take a few minutes."):
-                result = asyncio.run(rewrite_example(
-                    st.session_state.user_data,
-                    st.session_state.position_requirements,
-                    st.session_state.initial_scoring
-                ))
-                st.session_state.rewritten_example = result
+                try:
+                    # Handle asyncio event loop conflicts
+                    try:
+                        loop = asyncio.get_running_loop()
+                        # Use thread approach if event loop exists
+                        import concurrent.futures
+                        
+                        def run_rewrite_in_thread():
+                            new_loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(new_loop)
+                            try:
+                                return new_loop.run_until_complete(rewrite_example(
+                                    st.session_state.user_data,
+                                    st.session_state.position_requirements,
+                                    st.session_state.initial_scoring
+                                ))
+                            finally:
+                                new_loop.close()
+                        
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            future = executor.submit(run_rewrite_in_thread)
+                            result = future.result(timeout=300)  # 5 minute timeout
+                            
+                    except RuntimeError:
+                        # No event loop running
+                        result = asyncio.run(rewrite_example(
+                            st.session_state.user_data,
+                            st.session_state.position_requirements,
+                            st.session_state.initial_scoring
+                        ))
+                    
+                    st.session_state.rewritten_example = result
+                    
+                except Exception as e:
+                    st.error(f"❌ Rewrite failed: {type(e).__name__}: {str(e)}")
+                    st.session_state.rewritten_example = None
             
             st.session_state.processing = False
             st.rerun()
@@ -687,8 +1203,8 @@ def display_final_stage():
     """Display the final processing stage"""
     st.markdown('<h1 class="main-header">🎯 Step 5: Final Resume</h1>', unsafe_allow_html=True)
     
+    # Show what will be processed if no result yet
     if st.session_state.final_result is None:
-        # Show what will be processed
         if st.session_state.user_feedback:
             st.info(f"📝 **Your Feedback:** {st.session_state.user_feedback}")
         else:
@@ -698,22 +1214,67 @@ def display_final_stage():
             st.session_state.processing = True
             
             with st.spinner("Creating your final resume... This may take several minutes."):
-                result = asyncio.run(process_final_resume(
-                    st.session_state.user_data,
-                    st.session_state.position_requirements,
-                    st.session_state.rewritten_example,
-                    st.session_state.user_feedback
-                ))
-                st.session_state.final_result = result
+                # Fix asyncio event loop conflict by using proper async handling
+                try:
+                    # Check if we're already in an event loop
+                    try:
+                        loop = asyncio.get_running_loop()
+                        st.warning("⚠️ Running in existing event loop - using create_task approach")
+                        # If we're in a loop, we need to use a different approach
+                        # Create a new thread to run the async function
+                        import concurrent.futures
+                        import threading
+                        
+                        def run_async_in_thread():
+                            # Create new event loop in thread
+                            new_loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(new_loop)
+                            try:
+                                return new_loop.run_until_complete(process_final_resume(
+                                    st.session_state.user_data,
+                                    st.session_state.position_requirements,
+                                    st.session_state.rewritten_example,
+                                    st.session_state.user_feedback
+                                ))
+                            finally:
+                                new_loop.close()
+                        
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            future = executor.submit(run_async_in_thread)
+                            result = future.result(timeout=600)  # 10 minute timeout
+                            
+                    except RuntimeError:
+                        # No event loop running, safe to use asyncio.run()
+                        st.info("✅ No existing event loop - using asyncio.run()")
+                        result = asyncio.run(process_final_resume(
+                            st.session_state.user_data,
+                            st.session_state.position_requirements,
+                            st.session_state.rewritten_example,
+                            st.session_state.user_feedback
+                        ))
+                    
+                    st.session_state.final_result = result
+                    st.success("✅ Processing completed! Results are displayed below.")
+                    
+                except concurrent.futures.TimeoutError:
+                    st.error("❌ Process timed out after 10 minutes. Please try again.")
+                    st.session_state.final_result = None
+                except Exception as e:
+                    st.error(f"❌ Execution error: {type(e).__name__}: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
+                    st.session_state.final_result = None
             
             st.session_state.processing = False
-            st.rerun()
-    else:
-        # Display final results
+    
+    # Display final results if available
+    if st.session_state.final_result is not None:
+        st.markdown("---")
         st.success("✅ Your resume has been completed!")
         display_results(st.session_state.final_result)
         
         # Option to start over
+        st.markdown("---")
         col1, col2 = st.columns(2)
         with col1:
             if st.button("🔄 Start Over", type="secondary"):

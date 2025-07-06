@@ -31,9 +31,9 @@ A sophisticated multi-agent AI system designed to assist Queensland Police Servi
     ┌──────────┴──────────┬─────────────┬──────────────┐
     │                     │             │              │
 ┌───▼────────┐  ┌────────▼────────┐  ┌─▼──────────┐  ┌─▼────────────┐
-│ Readiness  │  │Position Analysis │  │  Example   │  │    STAR      │
-│Assessment  │  │     Agent        │  │ Selection  │  │   Writing    │
-│   Agent    │  │                  │  │   Agent    │  │    Agent     │
+│ Readiness  │  │Position Analysis│  │  Example   │  │    STAR      │
+│Assessment  │  │     Agent       │  │ Selection  │  │   Writing    │
+│   Agent    │  │                 │  │   Agent    │  │    Agent     │
 └────────────┘  └─────────────────┘  └────────────┘  └──────────────┘
                                                               │
                           ┌───────────────────────────────────┘

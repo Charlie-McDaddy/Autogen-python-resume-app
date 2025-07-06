@@ -29,13 +29,6 @@ async def main():
     
     # Sample data for demonstration
     user_data = {
-        "name": "Demo Officer",
-        "current_rank": "Senior Constable",
-        "current_position": "Community Liaison Officer",
-        "location": "Brisbane",
-        "years_experience": 6,
-        "target_position": "Sergeant - Community Engagement",
-        "target_location": "Gold Coast",
         "job_example": """In 2023, as a Senior Constable in Brisbane, I led a multi-agency response to address increasing antisocial behavior in the local shopping precinct. The situation required coordination between police, council, security services, and community groups to develop a sustainable solution that balanced enforcement with community engagement."""
     }
     
